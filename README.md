@@ -1,5 +1,6 @@
 # AndroidCoreLibrary
 
+[![JitPack](https://jitpack.io/v/viralkalathiyainfotech/AndroidLibrary.svg)](https://jitpack.io/#viralkalathiyainfotech/AndroidLibrary)
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://semver.org)
 [![Platform](https://img.shields.io/badge/platform-Android-green.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-purple.svg)](https://kotlinlang.org)
@@ -114,7 +115,53 @@ AndroidLibrary/
 
 ## 3. Installation & Setup
 
-### Adding to an Existing Project
+### Via JitPack (Recommended)
+
+#### Step 1: Add JitPack repository
+In your root `settings.gradle.kts` (or root `build.gradle`):
+
+```kotlin
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+    }
+}
+```
+
+*Or in Groovy (`settings.gradle` / `build.gradle`):*
+```groovy
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
+```
+
+#### Step 2: Add Dependency
+In your app module's `build.gradle.kts`:
+
+```kotlin
+dependencies {
+    implementation("com.github.viralkalathiyainfotech.AndroidLibrary:core:1.0.0")
+}
+```
+
+*Or in Groovy (`build.gradle`):*
+```groovy
+dependencies {
+    implementation 'com.github.viralkalathiyainfotech.AndroidLibrary:core:1.0.0'
+}
+```
+
+---
+
+### Via Local Project Module
 1. Copy the `core` folder into your Android project root.
 2. In your `settings.gradle.kts`, include `:core`:
    ```kotlin
@@ -126,23 +173,27 @@ AndroidLibrary/
        implementation(project(":core"))
    }
    ```
-4. Initialize the library in your `Application.onCreate()`:
-   ```kotlin
-   class MyApp : Application() {
-       override fun onCreate() {
-           super.onCreate()
-           CoreLibrary.initialize(
-               context = this,
-               config = CoreConfig(
-                   enableLogging = BuildConfig.DEBUG,
-                   enableNetworkLogging = BuildConfig.DEBUG,
-                   defaultTimeout = 30L,
-                   baseUrl = "https://api.yourdomain.com/"
-               )
-           )
-       }
-   }
-   ```
+
+---
+
+### Application Initialization
+Initialize the library in your `Application.onCreate()`:
+```kotlin
+class MyApp : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        CoreLibrary.initialize(
+            context = this,
+            config = CoreConfig(
+                enableLogging = BuildConfig.DEBUG,
+                enableNetworkLogging = BuildConfig.DEBUG,
+                defaultTimeout = 30L,
+                baseUrl = "https://api.yourdomain.com/"
+            )
+        )
+    }
+}
+```
 
 ---
 

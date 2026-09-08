@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.library)
+    `maven-publish`
 }
 
 android {
@@ -24,6 +25,12 @@ android {
         }
     }
 
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
+
     buildFeatures {
         viewBinding = true
     }
@@ -31,6 +38,19 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            register<MavenPublication>("release") {
+                from(components["release"])
+                groupId = project.findProperty("group")?.toString() ?: "com.github.viralkalathiyainfotech"
+                artifactId = project.findProperty("artifactId")?.toString() ?: "core"
+                version = project.findProperty("version")?.toString()?.takeIf { it != "unspecified" } ?: "1.0.0"
+            }
+        }
     }
 }
 
