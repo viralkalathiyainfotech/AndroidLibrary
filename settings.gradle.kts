@@ -23,4 +23,6 @@ rootProject.name = "AndroidLibrary"
 include(":app")
 include(":core")
 include(":sample")
+include(":standalone")
+
 

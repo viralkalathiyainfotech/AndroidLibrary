@@ -19,3 +19,5 @@ local.properties
 /core/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/
 /sample/build/
 /sample/build/intermediates/javac/debug/compileDebugJavaWithJavac/classes/
+.gradle_user/
+/standalone/build/

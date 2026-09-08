@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="standalone_app_name">Standalone Direct API</string>
+    <string name="standalone_title">Direct API Architecture</string>
+    <string name="standalone_subtitle">Zero ViewModel • Pure Lifecycle &amp; Core Components</string>
+    <string name="standalone_btn_fetch_api">1. Direct API Call</string>
+    <string name="standalone_btn_fetch_and_cache">2. API ➔ Cache to Room</string>
+    <string name="standalone_btn_load_room">3. Load from Room</string>
+    <string name="standalone_btn_datastore">4. Test DataStore</string>
+    <string name="standalone_btn_permissions">5. Request Permission</string>
+    <string name="standalone_btn_multipart">6. Multipart Upload</string>
+    <string name="standalone_btn_clear">Clear Local Data</string>
+</resources>

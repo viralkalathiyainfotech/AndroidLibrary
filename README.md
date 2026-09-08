@@ -1,7 +1,7 @@
 # AndroidCoreLibrary
 
 [![JitPack](https://jitpack.io/v/viralkalathiyainfotech/AndroidLibrary.svg)](https://jitpack.io/#viralkalathiyainfotech/AndroidLibrary)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://semver.org)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://semver.org)
 [![Platform](https://img.shields.io/badge/platform-Android-green.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-purple.svg)](https://kotlinlang.org)
 [![MinSdk](https://img.shields.io/badge/minSdk-24-orange.svg)](https://developer.android.com)
@@ -35,6 +35,10 @@ A production-ready, modular, and reusable Android core library engineered in Kot
 20. [Utility Toolkit](#20-utility-toolkit)
 21. [Unit Testing Suite](#21-unit-testing-suite)
 22. [ProGuard & R8 Optimization](#22-proguard--r8-optimization)
+23. [Standalone Architecture (No ViewModel)](#23-standalone-architecture-no-viewmodel)
+24. [Modern Permission Manager](#24-modern-permission-manager)
+25. [File / Image Upload & Multipart Helper](#25-file--image-upload--multipart-helper)
+26. [Unified Single-Call API Architecture](#26-unified-single-call-api-architecture)
 
 ---
 
@@ -103,11 +107,15 @@ AndroidLibrary/
 │       │   │   └── utils/             # Extensions for View, Context, Date, String, Keyboard, etc.
 │       │   └── res/                   # Base drawables, dialog layouts, colors, styles
 │       └── test/                      # Comprehensive Unit Test Suite (27 tests)
-├── sample/                            # Reference Implementation (:sample)
+├── sample/                            # Reference Implementation with MVVM & Room (:sample)
 │   ├── src/main/java/com/vc/sample/
 │   │   ├── data/                      # UserApiService, AppDatabase, UserDao, UserRepository
 │   │   ├── ui/                        # LoginActivity, HomeActivity, UserAdapter, BottomSheet
 │   │   └── SampleApplication.kt       # Application setup & DI wiring
+├── standalone/                        # Direct API Architecture without ViewModel (:standalone)
+│   └── src/main/java/com/vc/standalone/
+│       ├── data/                      # StandaloneApiService, StandaloneDatabase, StandaloneUserDao
+│       └── ui/                        # StandaloneActivity, StandaloneUserAdapter, UserDetailBottomSheet
 └── app/                               # Lightweight application shell (:app)
 ```
 
@@ -148,14 +156,14 @@ In your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.viralkalathiyainfotech.AndroidLibrary:core:1.0.0")
+    implementation("com.github.viralkalathiyainfotech.AndroidLibrary:core:1.2.0")
 }
 ```
 
 *Or in Groovy (`build.gradle`):*
 ```groovy
 dependencies {
-    implementation 'com.github.viralkalathiyainfotech.AndroidLibrary:core:1.0.0'
+    implementation 'com.github.viralkalathiyainfotech.AndroidLibrary:core:1.2.0'
 }
 ```
 
@@ -672,6 +680,190 @@ Run the test suite using:
 - Preserves Room entities and DAO queries.
 - Preserves OkHttp and Coroutines obfuscation safety.
 - Excludes dead code in consumer release builds.
+
+---
+
+## 23. Direct API Calls Without ViewModel (`:standalone`)
+
+The `:standalone` module demonstrates making network calls, database queries, and preference reads/writes directly from a `BaseActivity` **without declaring a ViewModel**, while actively leveraging all `:core` common classes:
+
+```kotlin
+class StandaloneActivity : BaseActivity<ActivityStandaloneBinding>() {
+
+    // 1. Direct Retrofit service via Core's RetrofitProvider
+    private val apiService = RetrofitProvider.createService<StandaloneApiService>("https://api.example.com/")
+
+    // 2. Direct Room database via Core's DatabaseProvider
+    private val database = DatabaseProvider.builder(this, StandaloneDatabase::class.java, "users.db")
+        .fallbackToDestructiveMigration(true)
+        .build()
+
+    // 3. Direct Preferences via Core's DataStoreManager
+    private val dataStore by lazy { DataStoreManager(applicationContext) }
+
+    // 4. Direct Network Connectivity via Core's LiveNetworkMonitor
+    private val networkMonitor by lazy { LiveNetworkMonitor(applicationContext) }
+
+    override fun inflateBinding() = ActivityStandaloneBinding.inflate(layoutInflater)
+
+    private fun fetchUsersDirectly() {
+        // Pre-check connectivity synchronously
+        if (!networkMonitor.isCurrentlyOnline()) {
+            showSnackbar("No internet connection")
+            return
+        }
+
+        // Direct lifecycleScope coroutine execution
+        lifecycleScope.launch {
+            showLoading("Fetching users directly...")
+
+            // Safe API call handles exceptions, timeouts, and status codes safely
+            val result = withContext(Dispatchers.IO) {
+                safeApiCall { apiService.getUsers() }
+            }
+
+            hideLoading()
+
+            when (result) {
+                is NetworkResult.Success -> {
+                    // Update UI directly
+                    userAdapter.submitList(result.data)
+                    showToast("Loaded ${result.data.size} users")
+                }
+                is NetworkResult.Error -> {
+                    // Handle and display error using BaseActivity's error presenter
+                    handleAppError(result.appError)
+                }
+                is NetworkResult.Loading -> {}
+            }
+        }
+    }
+}
+```
+
+---
+
+## 24. Modern Permission Manager
+
+`BaseActivity` and `BaseFragment` include seamless, boilerplate-free runtime permission requests powered by Android's Activity Result API:
+
+```kotlin
+// In any Activity extending BaseActivity or Fragment extending BaseFragment:
+
+// 1. Single permission request
+requestPermission(Manifest.permission.CAMERA) { isGranted ->
+    if (isGranted) {
+        openCamera()
+    } else {
+        showSnackbar("Camera permission is required", "Settings") {
+            openAppSettings() // Redirects to system app settings
+        }
+    }
+}
+
+// 2. Multiple permissions request with granular results
+requestPermissions(
+    Manifest.permission.CAMERA,
+    Manifest.permission.RECORD_AUDIO
+) { result ->
+    when {
+        result.areAllGranted -> startRecording()
+        result.hasPermanentlyDenied -> {
+            showSnackbar("Permissions permanently denied", "Settings") { openAppSettings() }
+        }
+        else -> showToast("Permissions denied: ${result.denied.joinToString()}")
+    }
+}
+
+// 3. Instant synchronous check
+val hasCamera = hasPermission(Manifest.permission.CAMERA)
+```
+
+---
+
+## 25. File / Image Upload & Multipart Helper
+
+`MultipartHelper` and `ProgressRequestBody` provide a complete toolkit for building multipart payloads from `File`, `Uri`, or `ByteArray` with real-time progress callbacks:
+
+```kotlin
+// 1. Create part from local File with progress listener
+val filePart = MultipartHelper.createPartFromFile(
+    file = imageFile,
+    partName = "avatar",
+    onProgress = { bytesWritten, totalBytes, percent ->
+        progressBar.progress = percent
+        tvProgress.text = "Uploading: $percent%"
+    }
+)
+
+// 2. Create part from content Uri (e.g. from PhotoPicker)
+val uriPart = MultipartHelper.createPartFromUri(
+    context = this,
+    uri = selectedUri,
+    partName = "document"
+)
+
+// 3. Create part from in-memory ByteArray
+val bytePart = MultipartHelper.createPartFromBytes(
+    bytes = compressedBytes,
+    partName = "photo",
+    fileName = "photo.jpg",
+    mimeType = "image/jpeg"
+)
+
+// 4. Create companion text parameters map
+val textParams = MultipartHelper.createPartMap(
+    mapOf(
+        "userId" to "42",
+        "description" to "Profile avatar"
+    )
+)
+
+// 5. Send with Retrofit
+safeApiCall { apiService.uploadProfile(filePart, textParams) }
+```
+
+---
+
+## 26. Unified Single-Call API Architecture
+
+Instead of writing 25–40 lines of repetitive coroutine, dialog, dispatching, and error code, make API calls in **3–4 lines** directly from any `BaseActivity` or `BaseFragment`:
+
+### 1. Direct 1-Line API Call (`launchApiCall`)
+Automatic network check, loading dialog, `Dispatchers.IO` switching, and standardized error handling:
+```kotlin
+launchApiCall(
+    request = { apiService.getUsers() }
+) { users ->
+    userAdapter.submitList(users)
+}
+```
+
+### 2. Auto DTO-to-Domain Mapping (`launchApiCallMapped`)
+```kotlin
+launchApiCallMapped(
+    loadingMessage = "Fetching users...",
+    request = { apiService.getUsers() },
+    transform = { dtoList -> dtoList.map { it.toDomain() } }
+) { domainUsers ->
+    userAdapter.submitList(domainUsers)
+}
+```
+
+### 3. Fluent Kotlin DSL Builder (`executeApi` / `executeApiMapped`)
+```kotlin
+executeApi<List<UserDto>> {
+    request { apiService.getUsers() }
+    loading(message = "Loading users...")
+    checkNetwork(check = true, offlineMessage = "Please check internet")
+    onSuccess { users ->
+        userAdapter.submitList(users)
+    }
+    onError { error ->
+        // Optional custom error handler; defaults to handleAppError(error)
+    }
+}
+```
 
 ---
 

@@ -1,4 +1,4 @@
-﻿package com.vc.androidcore.base
+package com.vc.androidcore.base
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -14,10 +14,18 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.viewbinding.ViewBinding
 import com.google.android.material.snackbar.Snackbar
 import com.vc.androidcore.error.AppError
+import com.vc.androidcore.network.ApiCallBuilder
+import com.vc.androidcore.network.LiveNetworkMonitor
+import com.vc.androidcore.network.NetworkResult
+import com.vc.androidcore.network.safeApiCall
+import com.vc.androidcore.permission.PermissionHelper
+import com.vc.androidcore.permission.PermissionResult
 import com.vc.androidcore.state.UiEvent
 import com.vc.androidcore.ui.dialog.LoadingDialog
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import retrofit2.Response
 
 /**
  * Base [Fragment] providing leak-safe ViewBinding lifecycle management,
@@ -32,6 +40,18 @@ abstract class BaseFragment<VB : ViewBinding> : Fragment() {
         )
 
     private var loadingDialog: LoadingDialog? = null
+
+    /**
+     * Modern Activity Result API permission manager.
+     */
+    val permissionHelper = PermissionHelper(this)
+
+    /**
+     * Reactive and synchronous network connectivity monitor.
+     */
+    val networkMonitor: LiveNetworkMonitor by lazy {
+        LiveNetworkMonitor(requireContext().applicationContext)
+    }
 
     abstract fun inflateBinding(inflater: LayoutInflater, container: ViewGroup?): VB
 
@@ -152,6 +172,122 @@ abstract class BaseFragment<VB : ViewBinding> : Fragment() {
         targetView.requestFocus()
         val controller = WindowInsetsControllerCompat(window, targetView)
         controller.show(WindowInsetsCompat.Type.ime())
+    }
+
+    // --- Permission Helpers ---
+    fun requestPermission(permission: String, onResult: (Boolean) -> Unit) {
+        permissionHelper.request(permission, onResult)
+    }
+
+    fun requestPermissions(vararg permissions: String, onResult: (PermissionResult) -> Unit) {
+        permissionHelper.request(*permissions, onResult = onResult)
+    }
+
+    fun hasPermission(permission: String): Boolean = permissionHelper.hasPermission(permission)
+
+    fun hasPermissions(vararg permissions: String): Boolean = permissionHelper.hasPermissions(*permissions)
+
+    // --- Direct Single-Call API Helpers ---
+
+    /**
+     * Executes an API call in a single line within Fragment viewLifecycleOwner.
+     * Automated lifecycle management, loading dialog, network check, Dispatchers.IO,
+     * and standardized error handling.
+     */
+    fun <T> launchApiCall(
+        showLoading: Boolean = true,
+        loadingMessage: String = "Loading...",
+        checkNetwork: Boolean = true,
+        offlineMessage: String = "No internet connection",
+        onError: ((AppError) -> Unit)? = null,
+        request: suspend () -> Response<T>,
+        onSuccess: (T) -> Unit
+    ): Job {
+        return viewLifecycleOwner.lifecycleScope.launch {
+            if (checkNetwork && !networkMonitor.isCurrentlyOnline()) {
+                val error = AppError.Network
+                showSnackbar(offlineMessage)
+                onError?.invoke(error) ?: handleAppError(error)
+                return@launch
+            }
+
+            if (showLoading) showLoading(loadingMessage)
+            try {
+                when (val result = safeApiCall { request() }) {
+                    is NetworkResult.Success -> onSuccess(result.data)
+                    is NetworkResult.Error -> {
+                        onError?.invoke(result.appError) ?: handleAppError(result.appError)
+                    }
+                    is NetworkResult.Loading -> {}
+                }
+            } finally {
+                if (showLoading) hideLoading()
+            }
+        }
+    }
+
+    /**
+     * Executes an API call with direct DTO to Domain transformation in a single call.
+     */
+    fun <DTO, Domain> launchApiCallMapped(
+        showLoading: Boolean = true,
+        loadingMessage: String = "Loading...",
+        checkNetwork: Boolean = true,
+        offlineMessage: String = "No internet connection",
+        onError: ((AppError) -> Unit)? = null,
+        request: suspend () -> Response<DTO>,
+        transform: (DTO) -> Domain,
+        onSuccess: (Domain) -> Unit
+    ): Job {
+        return launchApiCall(
+            showLoading = showLoading,
+            loadingMessage = loadingMessage,
+            checkNetwork = checkNetwork,
+            offlineMessage = offlineMessage,
+            onError = onError,
+            request = request,
+            onSuccess = { dtoData ->
+                val domainData = transform(dtoData)
+                onSuccess(domainData)
+            }
+        )
+    }
+
+    /**
+     * Executes an API call using a fluent Kotlin DSL builder.
+     */
+    fun <T> executeApi(block: ApiCallBuilder<T, T>.() -> Unit): Job {
+        val builder = ApiCallBuilder<T, T>().apply {
+            transformAction = { it }
+            block()
+        }
+        return executeApiInternal(builder)
+    }
+
+    /**
+     * Executes an API call with DTO to Domain transformation using a fluent Kotlin DSL builder.
+     */
+    fun <T, R> executeApiMapped(block: ApiCallBuilder<T, R>.() -> Unit): Job {
+        val builder = ApiCallBuilder<T, R>().apply(block)
+        return executeApiInternal(builder)
+    }
+
+    private fun <T, R> executeApiInternal(builder: ApiCallBuilder<T, R>): Job {
+        val req = builder.apiCallAction ?: error("API request block must be provided in executeApi / executeApiMapped")
+        val transform = builder.transformAction ?: error("Transform block must be provided in executeApiMapped")
+
+        return launchApiCall(
+            showLoading = builder.showLoadingEnabled,
+            loadingMessage = builder.loadingMessageText,
+            checkNetwork = builder.checkNetworkEnabled,
+            offlineMessage = builder.offlineMessageText,
+            onError = builder.onErrorAction,
+            request = req,
+            onSuccess = { rawData ->
+                val domainData = transform(rawData)
+                builder.onSuccessAction?.invoke(domainData)
+            }
+        )
     }
 
     /**
