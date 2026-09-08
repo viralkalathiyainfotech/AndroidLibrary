@@ -199,6 +199,8 @@ abstract class BaseFragment<VB : ViewBinding> : Fragment() {
         loadingMessage: String = "Loading...",
         checkNetwork: Boolean = true,
         offlineMessage: String = "No internet connection",
+        retryCount: Int = 0,
+        retryDelayMs: Long = 1000L,
         onError: ((AppError) -> Unit)? = null,
         request: suspend () -> Response<T>,
         onSuccess: (T) -> Unit
@@ -213,7 +215,7 @@ abstract class BaseFragment<VB : ViewBinding> : Fragment() {
 
             if (showLoading) showLoading(loadingMessage)
             try {
-                when (val result = safeApiCall { request() }) {
+                when (val result = safeApiCall(retryCount = retryCount, retryDelayMs = retryDelayMs) { request() }) {
                     is NetworkResult.Success -> onSuccess(result.data)
                     is NetworkResult.Error -> {
                         onError?.invoke(result.appError) ?: handleAppError(result.appError)
@@ -234,6 +236,8 @@ abstract class BaseFragment<VB : ViewBinding> : Fragment() {
         loadingMessage: String = "Loading...",
         checkNetwork: Boolean = true,
         offlineMessage: String = "No internet connection",
+        retryCount: Int = 0,
+        retryDelayMs: Long = 1000L,
         onError: ((AppError) -> Unit)? = null,
         request: suspend () -> Response<DTO>,
         transform: (DTO) -> Domain,
@@ -244,6 +248,8 @@ abstract class BaseFragment<VB : ViewBinding> : Fragment() {
             loadingMessage = loadingMessage,
             checkNetwork = checkNetwork,
             offlineMessage = offlineMessage,
+            retryCount = retryCount,
+            retryDelayMs = retryDelayMs,
             onError = onError,
             request = request,
             onSuccess = { dtoData ->
@@ -281,6 +287,8 @@ abstract class BaseFragment<VB : ViewBinding> : Fragment() {
             loadingMessage = builder.loadingMessageText,
             checkNetwork = builder.checkNetworkEnabled,
             offlineMessage = builder.offlineMessageText,
+            retryCount = builder.retryCountValue,
+            retryDelayMs = builder.retryDelayMsValue,
             onError = builder.onErrorAction,
             request = req,
             onSuccess = { rawData ->

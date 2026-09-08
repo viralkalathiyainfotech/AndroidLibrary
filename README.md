@@ -1,7 +1,7 @@
 # AndroidCoreLibrary
 
 [![JitPack](https://jitpack.io/v/viralkalathiyainfotech/AndroidLibrary.svg)](https://jitpack.io/#viralkalathiyainfotech/AndroidLibrary)
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://semver.org)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://semver.org)
 [![Platform](https://img.shields.io/badge/platform-Android-green.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-purple.svg)](https://kotlinlang.org)
 [![MinSdk](https://img.shields.io/badge/minSdk-24-orange.svg)](https://developer.android.com)
@@ -39,6 +39,8 @@ A production-ready, modular, and reusable Android core library engineered in Kot
 24. [Modern Permission Manager](#24-modern-permission-manager)
 25. [File / Image Upload & Multipart Helper](#25-file--image-upload--multipart-helper)
 26. [Unified Single-Call API Architecture](#26-unified-single-call-api-architecture)
+27. [BaseViewModel Single-Line API Architecture](#27-baseviewmodel-single-line-api-architecture)
+28. [Developer Ergonomics Toolkit (Navigation, Search, Dialogs, Pagination)](#28-developer-ergonomics-toolkit)
 
 ---
 
@@ -156,14 +158,14 @@ In your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.viralkalathiyainfotech.AndroidLibrary:core:1.2.0")
+    implementation("com.github.viralkalathiyainfotech.AndroidLibrary:core:1.3.0")
 }
 ```
 
 *Or in Groovy (`build.gradle`):*
 ```groovy
 dependencies {
-    implementation 'com.github.viralkalathiyainfotech.AndroidLibrary:core:1.2.0'
+    implementation 'com.github.viralkalathiyainfotech.AndroidLibrary:core:1.3.0'
 }
 ```
 
@@ -854,6 +856,7 @@ launchApiCallMapped(
 ```kotlin
 executeApi<List<UserDto>> {
     request { apiService.getUsers() }
+    retry(count = 3)
     loading(message = "Loading users...")
     checkNetwork(check = true, offlineMessage = "Please check internet")
     onSuccess { users ->
@@ -862,6 +865,98 @@ executeApi<List<UserDto>> {
     onError { error ->
         // Optional custom error handler; defaults to handleAppError(error)
     }
+}
+```
+
+---
+
+## 27. BaseViewModel Single-Line API Architecture
+
+Make API calls in **1-2 lines** inside any `BaseViewModel` with automatic loading states, error states, and retry support:
+
+```kotlin
+class UserViewModel : BaseViewModel() {
+
+    private val _users = MutableStateFlow<List<User>>(emptyList())
+    val users: StateFlow<List<User>> = _users.asStateFlow()
+
+    // 1. Direct API call with automatic loadingState & errorState
+    fun fetchUsers() = launchApi(
+        call = { apiService.getUsers() }
+    ) { data ->
+        _users.value = data
+    }
+
+    // 2. Direct API call with DTO to Domain model mapping & auto-retry
+    fun fetchUsersMapped() = launchApiMapped(
+        retryCount = 2,
+        call = { apiService.getUsers() },
+        transform = { dtoList -> dtoList.map { it.toDomain() } }
+    ) { domainUsers ->
+        _users.value = domainUsers
+    }
+}
+```
+
+---
+
+## 28. Developer Ergonomics Toolkit
+
+A suite of high-productivity extensions eliminating daily boilerplate:
+
+### 1. Instant Search Debounce (`EditText.onSearchQuery`)
+```kotlin
+binding.etSearch.onSearchQuery(debounceMs = 400L, scope = lifecycleScope) { query ->
+    viewModel.search(query)
+}
+```
+
+### 2. Type-Safe Clean Navigation (`openActivity`)
+```kotlin
+// In Activity or Fragment:
+openActivity<UserDetailActivity> {
+    putExtra("user_id", user.id)
+    putExtra("user_name", user.name)
+}
+
+// Open and finish current screen:
+openActivityAndFinish<HomeActivity>()
+```
+
+### 3. Coil Image Loading Extensions
+```kotlin
+// Regular loading with placeholder & crossfade
+binding.ivProfile.loadImage(user.avatarUrl, placeholderRes = R.drawable.placeholder)
+
+// Circular crop (perfect for avatars)
+binding.ivAvatar.loadCircle(user.avatarUrl)
+
+// Rounded corners
+binding.ivBanner.loadRounded(bannerUrl, cornerRadiusDp = 12)
+```
+
+### 4. Quick Material Dialogs
+```kotlin
+// Confirmation dialog with actions
+showConfirmDialog(
+    title = "Delete Record",
+    message = "Are you sure you want to delete this record?",
+    positiveText = "Delete",
+    negativeText = "Cancel",
+    onPositive = { deleteItem() }
+)
+
+// Alert dialog
+showAlertDialog(
+    title = "Notice",
+    message = "Your session has been updated."
+)
+```
+
+### 5. RecyclerView Infinite Scroll (`onLoadMore`)
+```kotlin
+binding.recyclerView.onLoadMore(threshold = 3) { nextPage ->
+    viewModel.loadPage(nextPage)
 }
 ```
 

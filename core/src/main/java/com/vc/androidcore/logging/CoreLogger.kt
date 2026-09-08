@@ -1,4 +1,4 @@
-﻿package com.vc.androidcore.logging
+package com.vc.androidcore.logging
 
 import android.util.Log
 import com.vc.androidcore.config.CoreLibrary
@@ -41,10 +41,12 @@ object CoreLogger {
     fun d(message: String, tag: String = DEFAULT_TAG, throwable: Throwable? = null) {
         if (!isLoggable()) return
         val safeMessage = scrubSensitiveData(message)
-        if (throwable != null) {
-            Log.d(tag, safeMessage, throwable)
-        } else {
-            Log.d(tag, safeMessage)
+        runCatching {
+            if (throwable != null) {
+                Log.d(tag, safeMessage, throwable)
+            } else {
+                Log.d(tag, safeMessage)
+            }
         }
     }
 
@@ -54,10 +56,12 @@ object CoreLogger {
     fun i(message: String, tag: String = DEFAULT_TAG, throwable: Throwable? = null) {
         if (!isLoggable()) return
         val safeMessage = scrubSensitiveData(message)
-        if (throwable != null) {
-            Log.i(tag, safeMessage, throwable)
-        } else {
-            Log.i(tag, safeMessage)
+        runCatching {
+            if (throwable != null) {
+                Log.i(tag, safeMessage, throwable)
+            } else {
+                Log.i(tag, safeMessage)
+            }
         }
     }
 
@@ -67,10 +71,12 @@ object CoreLogger {
     fun w(message: String, tag: String = DEFAULT_TAG, throwable: Throwable? = null) {
         if (!isLoggable()) return
         val safeMessage = scrubSensitiveData(message)
-        if (throwable != null) {
-            Log.w(tag, safeMessage, throwable)
-        } else {
-            Log.w(tag, safeMessage)
+        runCatching {
+            if (throwable != null) {
+                Log.w(tag, safeMessage, throwable)
+            } else {
+                Log.w(tag, safeMessage)
+            }
         }
     }
 
@@ -80,10 +86,12 @@ object CoreLogger {
     fun e(message: String, tag: String = DEFAULT_TAG, throwable: Throwable? = null) {
         if (!isLoggable()) return
         val safeMessage = scrubSensitiveData(message)
-        if (throwable != null) {
-            Log.e(tag, safeMessage, throwable)
-        } else {
-            Log.e(tag, safeMessage)
+        runCatching {
+            if (throwable != null) {
+                Log.e(tag, safeMessage, throwable)
+            } else {
+                Log.e(tag, safeMessage)
+            }
         }
     }
 }

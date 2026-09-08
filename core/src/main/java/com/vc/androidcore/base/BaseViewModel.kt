@@ -1,4 +1,4 @@
-﻿package com.vc.androidcore.base
+package com.vc.androidcore.base
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -6,9 +6,13 @@ import com.vc.androidcore.error.AppError
 import com.vc.androidcore.error.ErrorMapper
 import com.vc.androidcore.logging.CoreLogger
 import com.vc.androidcore.network.NetworkResult
+import com.vc.androidcore.network.safeApiCall
 import com.vc.androidcore.state.UiEvent
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -16,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import retrofit2.Response
 
 /**
  * Base [ViewModel] providing coroutine execution, state streams, event dispatch, and error management.
@@ -117,6 +122,81 @@ abstract class BaseViewModel : ViewModel() {
         viewModelScope.launch {
             _uiEvent.emit(event)
         }
+    }
+
+    /**
+     * Ultra-clean single-line API caller for ViewModels.
+     * Automatically triggers loadingState, dispatches on IO, updates errorState on failure,
+     * and supports retryCount.
+     *
+     * Example:
+     * ```kotlin
+     * fun loadUsers() = launchApi(
+     *     call = { apiService.getUsers() },
+     *     onSuccess = { users -> _users.value = users }
+     * )
+     * ```
+     */
+    fun <T> launchApi(
+        showLoading: Boolean = true,
+        dispatcher: CoroutineDispatcher = Dispatchers.IO,
+        retryCount: Int = 0,
+        retryDelayMs: Long = 1000L,
+        onError: ((AppError) -> Unit)? = null,
+        call: suspend () -> Response<T>,
+        onSuccess: suspend (T) -> Unit
+    ): Job {
+        if (showLoading) showLoading()
+        return viewModelScope.launch(exceptionHandler) {
+            try {
+                when (val result = safeApiCall(dispatcher = dispatcher, retryCount = retryCount, retryDelayMs = retryDelayMs) { call() }) {
+                    is NetworkResult.Success -> onSuccess(result.data)
+                    is NetworkResult.Error -> {
+                        _errorState.value = result.appError
+                        onError?.invoke(result.appError)
+                    }
+                    is NetworkResult.Loading -> {}
+                }
+            } finally {
+                if (showLoading) hideLoading()
+            }
+        }
+    }
+
+    /**
+     * Single-line API caller for ViewModels with inline DTO-to-Domain transformation.
+     *
+     * Example:
+     * ```kotlin
+     * fun loadUsers() = launchApiMapped(
+     *     call = { apiService.getUsers() },
+     *     transform = { dtoList -> dtoList.map { it.toDomain() } },
+     *     onSuccess = { domainUsers -> _users.value = domainUsers }
+     * )
+     * ```
+     */
+    fun <DTO, Domain> launchApiMapped(
+        showLoading: Boolean = true,
+        dispatcher: CoroutineDispatcher = Dispatchers.IO,
+        retryCount: Int = 0,
+        retryDelayMs: Long = 1000L,
+        onError: ((AppError) -> Unit)? = null,
+        call: suspend () -> Response<DTO>,
+        transform: (DTO) -> Domain,
+        onSuccess: suspend (Domain) -> Unit
+    ): Job {
+        return launchApi(
+            showLoading = showLoading,
+            dispatcher = dispatcher,
+            retryCount = retryCount,
+            retryDelayMs = retryDelayMs,
+            onError = onError,
+            call = call,
+            onSuccess = { rawDto ->
+                val domain = transform(rawDto)
+                onSuccess(domain)
+            }
+        )
     }
 
     fun showLoading() {

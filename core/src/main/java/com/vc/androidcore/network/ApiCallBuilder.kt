@@ -17,8 +17,18 @@ class ApiCallBuilder<T, R> {
     internal var loadingMessageText: String = "Loading..."
     internal var checkNetworkEnabled: Boolean = true
     internal var offlineMessageText: String = "No Internet connection available"
+    internal var retryCountValue: Int = 0
+    internal var retryDelayMsValue: Long = 1000L
     internal var onSuccessAction: ((R) -> Unit)? = null
     internal var onErrorAction: ((AppError) -> Unit)? = null
+
+    /**
+     * Configures automatic retry attempts and initial delay on transient network / 5xx server failures.
+     */
+    fun retry(count: Int, delayMs: Long = 1000L) {
+        this.retryCountValue = count
+        this.retryDelayMsValue = delayMs
+    }
 
     /**
      * Defines the suspend Retrofit API call to execute.

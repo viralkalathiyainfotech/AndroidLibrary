@@ -1,4 +1,4 @@
-﻿package com.vc.androidcore
+package com.vc.androidcore
 
 import com.vc.androidcore.error.AppError
 import com.vc.androidcore.network.NetworkResult
@@ -49,5 +49,35 @@ class SafeApiCallTest {
         assertTrue(result is NetworkResult.Error)
         val error = result as NetworkResult.Error
         assertEquals(AppError.Timeout, error.appError)
+    }
+
+    @Test
+    fun safeApiCall_retriesOnTransientError_andSucceeds() = runTest(testDispatcher) {
+        var attempts = 0
+        val result = safeApiCall(testDispatcher, retryCount = 2, retryDelayMs = 10) {
+            attempts++
+            if (attempts < 2) {
+                Response.error<String>(503, "Service Unavailable".toResponseBody(null))
+            } else {
+                Response.success("Recovered Data")
+            }
+        }
+
+        assertTrue(result is NetworkResult.Success)
+        assertEquals("Recovered Data", (result as NetworkResult.Success).data)
+        assertEquals(2, attempts)
+    }
+
+    @Test
+    fun safeApiCall_retriesExhausted_returnsError() = runTest(testDispatcher) {
+        var attempts = 0
+        val result = safeApiCall(testDispatcher, retryCount = 2, retryDelayMs = 10) {
+            attempts++
+            Response.error<String>(500, "Internal Server Error".toResponseBody(null))
+        }
+
+        assertTrue(result is NetworkResult.Error)
+        assertEquals(500, (result as NetworkResult.Error).code)
+        assertEquals(3, attempts)
     }
 }

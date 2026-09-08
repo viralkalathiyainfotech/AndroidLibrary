@@ -239,6 +239,8 @@ abstract class BaseActivity<VB : ViewBinding> : AppCompatActivity() {
         loadingMessage: String = "Loading...",
         checkNetwork: Boolean = true,
         offlineMessage: String = "No internet connection",
+        retryCount: Int = 0,
+        retryDelayMs: Long = 1000L,
         onError: ((AppError) -> Unit)? = null,
         request: suspend () -> Response<T>,
         onSuccess: (T) -> Unit
@@ -253,7 +255,7 @@ abstract class BaseActivity<VB : ViewBinding> : AppCompatActivity() {
 
             if (showLoading) showLoading(loadingMessage)
             try {
-                when (val result = safeApiCall { request() }) {
+                when (val result = safeApiCall(retryCount = retryCount, retryDelayMs = retryDelayMs) { request() }) {
                     is NetworkResult.Success -> onSuccess(result.data)
                     is NetworkResult.Error -> {
                         onError?.invoke(result.appError) ?: handleAppError(result.appError)
@@ -283,6 +285,8 @@ abstract class BaseActivity<VB : ViewBinding> : AppCompatActivity() {
         loadingMessage: String = "Loading...",
         checkNetwork: Boolean = true,
         offlineMessage: String = "No internet connection",
+        retryCount: Int = 0,
+        retryDelayMs: Long = 1000L,
         onError: ((AppError) -> Unit)? = null,
         request: suspend () -> Response<DTO>,
         transform: (DTO) -> Domain,
@@ -293,6 +297,8 @@ abstract class BaseActivity<VB : ViewBinding> : AppCompatActivity() {
             loadingMessage = loadingMessage,
             checkNetwork = checkNetwork,
             offlineMessage = offlineMessage,
+            retryCount = retryCount,
+            retryDelayMs = retryDelayMs,
             onError = onError,
             request = request,
             onSuccess = { dtoData ->
@@ -309,6 +315,7 @@ abstract class BaseActivity<VB : ViewBinding> : AppCompatActivity() {
      * ```kotlin
      * executeApi<List<UserDto>> {
      *     request { apiService.getUsers() }
+     *     retry(count = 3)
      *     loading("Fetching users...")
      *     onSuccess { users -> adapter.submitList(users) }
      * }
@@ -339,6 +346,8 @@ abstract class BaseActivity<VB : ViewBinding> : AppCompatActivity() {
             loadingMessage = builder.loadingMessageText,
             checkNetwork = builder.checkNetworkEnabled,
             offlineMessage = builder.offlineMessageText,
+            retryCount = builder.retryCountValue,
+            retryDelayMs = builder.retryDelayMsValue,
             onError = builder.onErrorAction,
             request = req,
             onSuccess = { rawData ->

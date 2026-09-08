@@ -25,6 +25,12 @@ android {
         }
     }
 
+    testOptions {
+        unitTests {
+            isReturnDefaultValues = true
+        }
+    }
+
     publishing {
         singleVariant("release") {
             withSourcesJar()
@@ -48,7 +54,7 @@ afterEvaluate {
                 from(components["release"])
                 groupId = project.findProperty("group")?.toString() ?: "com.github.viralkalathiyainfotech"
                 artifactId = project.findProperty("artifactId")?.toString() ?: "core"
-                version = project.findProperty("version")?.toString()?.takeIf { it != "unspecified" } ?: "1.2.0"
+                version = project.findProperty("version")?.toString()?.takeIf { it != "unspecified" } ?: "1.3.0"
             }
         }
     }

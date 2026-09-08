@@ -45,6 +45,15 @@ class ApiCallBuilderTest {
     }
 
     @Test
+    fun `retry configuration should update retry properties`() {
+        val builder = ApiCallBuilder<String, String>()
+        builder.retry(count = 3, delayMs = 2500L)
+
+        assertEquals(3, builder.retryCountValue)
+        assertEquals(2500L, builder.retryDelayMsValue)
+    }
+
+    @Test
     fun `request lambda should be captured and invokable`() = runBlocking {
         val builder = ApiCallBuilder<String, String>()
         builder.request {
