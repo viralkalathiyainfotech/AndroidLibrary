@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="core_white">#FFFFFF</color>
+    <color name="core_black">#000000</color>
+    <color name="core_transparent">#00000000</color>
+    <color name="core_dialog_background">#FFFFFF</color>
+    <color name="core_text_primary">#212121</color>
+    <color name="core_text_secondary">#757575</color>
+    <color name="core_accent">#1976D2</color>
+    <color name="core_error">#D32F2F</color>
+    <color name="core_success">#388E3C</color>
+</resources>

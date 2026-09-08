@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">CoreLib Demo</string>
+    <string name="login_title">Welcome Back</string>
+    <string name="login_subtitle">Sign in to test AndroidCoreLibrary architecture</string>
+    <string name="email_hint">Email Address</string>
+    <string name="password_hint">Password</string>
+    <string name="btn_login">Sign In</string>
+    <string name="home_title">Users Directory</string>
+    <string name="search_hint">Search users by name or email...</string>
+    <string name="status_online">Online • Syncing enabled</string>
+    <string name="status_offline">Offline • Showing cached data</string>
+    <string name="empty_users">No users found. Pull to refresh when online.</string>
+    <string name="btn_retry">Retry</string>
+    <string name="btn_logout">Logout</string>
+    <string name="user_detail_title">User Details</string>
+</resources>
