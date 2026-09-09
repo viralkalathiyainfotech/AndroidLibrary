@@ -6,6 +6,7 @@ import com.vc.androidcore.state.UiEvent
 import com.vc.androidcore.utils.isValidEmail
 import com.vc.sample.ui.home.HomeActivity
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * ViewModel for Login screen extending [BaseViewModel].
@@ -28,7 +29,7 @@ class LoginViewModel(
         // Safe coroutine execution with loading spinner
         launchSafe(showLoading = true) {
             // Simulate network authentication roundtrip
-            delay(1000)
+            delay(1000.milliseconds)
 
             // Save auth token to DataStore
             val mockToken = "mock_jwt_token_${System.currentTimeMillis()}"

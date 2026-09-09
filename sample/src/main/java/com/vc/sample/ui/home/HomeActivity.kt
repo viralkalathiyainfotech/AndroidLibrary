@@ -86,6 +86,37 @@ class HomeActivity : BaseActivity<ActivityHomeBinding>() {
         }
     }
 
+//    override fun observeData() {
+//        // collectLifecycleFlow દ્વારા સેફ રીતે સ્ટેટ સાંભળો
+//        collectLifecycleFlow(viewModel.usersState) { state ->
+//            when (state) {
+//                is UiState.Idle -> {
+//                    binding.progressBar.visibility = View.GONE
+//                }
+//                is UiState.Loading -> {
+//                    // 👉 Screen પર પોતાનો Progress Bar / Button Loading
+//                    binding.progressBar.visibility = View.VISIBLE
+//                    binding.btnLogin.isEnabled = false
+//                }
+//                is UiState.Success -> {
+//                    // 👉 Progress બંધ કરો અને Custom Success Method કોલ કરો
+//                    binding.progressBar.visibility = View.GONE
+//                    binding.btnLogin.isEnabled = true
+//
+//                    handleCustomSuccess(state.data) // તમારી Custom Method
+//                }
+//                is UiState.Error -> {
+//                    // 👉 Progress બંધ કરો અને Custom Error Method કોલ કરો
+//                    binding.progressBar.visibility = View.GONE
+//                    binding.btnLogin.isEnabled = true
+//
+//                    handleCustomError(state.message) // તમારી Custom Method
+//                }
+//            }
+//        }
+//    }
+
+
     override fun observeData() {
         observeBaseEvents(viewModel)
 
