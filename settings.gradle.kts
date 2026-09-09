@@ -18,5 +18,7 @@ include(":app")
 include(":core")
 include(":sample")
 include(":standalone")
+include(":compose-core")
+include(":compose-sample")
 
 

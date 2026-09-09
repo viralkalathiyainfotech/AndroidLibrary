@@ -41,6 +41,16 @@ A production-ready, modular, and reusable Android core library engineered in Kot
 26. [Unified Single-Call API Architecture](#26-unified-single-call-api-architecture)
 27. [BaseViewModel Single-Line API Architecture](#27-baseviewmodel-single-line-api-architecture)
 28. [Developer Ergonomics Toolkit (Navigation, Search, Dialogs, Pagination)](#28-developer-ergonomics-toolkit)
+29. [Jetpack Compose Core Library (:compose-core)](#29-jetpack-compose-core-library-compose-core)
+    - [Architecture & MVI Unidirectional Data Flow](#compose-mvi-architecture)
+    - [Base Components & Screens](#compose-base-components)
+    - [Design Tokens & Theme Engine](#compose-theme--design-tokens)
+    - [Production UI Components Catalog](#compose-ui-components)
+    - [Form Architecture & Declarative Validation](#compose-form-architecture)
+    - [Responsive Layouts & Window Size Classes](#compose-responsive--adaptive)
+    - [Permissions & Media Picker](#compose-permissions--media)
+    - [Compose Navigation Engine](#compose-navigation)
+    - [Migration Guide from View-Based Core](#compose-migration-guide)
 
 ---
 
@@ -52,11 +62,13 @@ A production-ready, modular, and reusable Android core library engineered in Kot
 ┌─────────────────────────────────────────────────────────┐
 │               PRESENTATION LAYER                        │
 │   BaseActivity • BaseFragment • BaseDialog • UI State   │
+│   BaseComposeActivity • BaseComposeViewModel • Compose  │
 └───────────────────────────┬─────────────────────────────┘
                             │ observes StateFlow & Events
 ┌───────────────────────────▼─────────────────────────────┐
 │                 VIEWMODEL LAYER                         │
 │       BaseViewModel • Coroutines • ExceptionHandler     │
+│   BaseComposeViewModel • UiAction • UiEvent • UiEffect  │
 └───────────────────────────┬─────────────────────────────┘
                             │ requests data streams
 ┌───────────────────────────▼─────────────────────────────┐
@@ -73,10 +85,11 @@ A production-ready, modular, and reusable Android core library engineered in Kot
 ```
 
 ### Core Tenets:
-- **Zero Business Logic in Core**: Generic types (`T`, `VB : ViewBinding`) throughout.
-- **Lifecycle Safety**: Guaranteed cleanup of ViewBinding references in Fragment lifecycles.
+- **Zero Business Logic in Core**: Generic types (`T`, `VB : ViewBinding`, `ViewState`) throughout.
+- **Lifecycle Safety**: Guaranteed cleanup of ViewBinding references in Fragment lifecycles, lifecycle-aware StateFlow collection in Compose with `collectAsStateWithLifecycle()`.
 - **Structured Concurrency**: Driven by `viewModelScope` and `repeatOnLifecycle`. No `GlobalScope`.
 - **Offline-First Reactive Flow**: Data flows from Local DB Cache $\rightarrow$ Remote Sync $\rightarrow$ DB Update $\rightarrow$ UI State.
+- **Interoperability**: Seamless bridging between `:core` (Room, Retrofit, Datastore, NetworkMonitor, AppError) and `:compose-core` (MVI, Material 3, Adaptive UI).
 
 ---
 
@@ -109,7 +122,30 @@ AndroidLibrary/
 │       │   │   └── utils/             # Extensions for View, Context, Date, String, Keyboard, etc.
 │       │   └── res/                   # Base drawables, dialog layouts, colors, styles
 │       └── test/                      # Comprehensive Unit Test Suite (27 tests)
-├── sample/                            # Reference Implementation with MVVM & Room (:sample)
+├── compose-core/                      # Jetpack Compose UI & Architecture Foundation (:compose-core)
+│   ├── build.gradle.kts
+│   ├── consumer-rules.pro             # ProGuard rules for Compose runtime & models
+│   └── src/
+│       ├── main/java/com/vc/composecore/
+│       │   ├── base/                  # BaseComposeActivity, BaseComposeViewModel, BaseScreens, CoreStateScreen
+│       │   ├── state/                 # UiAction, UiEvent, UiEffect, ViewState, ScreenState, CollectEffect
+│       │   ├── theme/                 # CoreTokens (spacing, radius, elevation), CoreColors, CoreTheme
+│       │   ├── components/            # 23 atomic & composite UI components (buttons, dialogs, sheets, etc.)
+│       │   ├── forms/                 # FormFieldState, CoreFormState, 12+ built-in validators
+│       │   ├── lists/                 # CoreLazyColumn, CoreLazyRow, SwipeToDismiss, Reorderable
+│       │   ├── paging/                # CorePagingColumn, PagingStatusIndicator, PagingLoadStateMapper
+│       │   ├── permissions/           # CorePermissionManager, PermissionRationaleDialog
+│       │   ├── media/                 # CoreMediaPicker (Camera, Gallery, Multiple, Documents)
+│       │   ├── responsive/            # WindowSizeClass, ResponsiveLayout, AdaptiveScaffold, Breakpoints
+│       │   ├── navigation/            # CoreNavHost, CoreRoute, SafeArguments, Animated Transitions
+│       │   └── resources/             # CoreText, CoreDrawable (decouples ViewModel from Android resources)
+│       └── test/                      # Compose Core Unit Tests (ViewModels, Forms, Tokens)
+├── compose-sample/                    # Comprehensive Compose Catalog & Feature Showcase (:compose-sample)
+│   ├── src/main/java/com/vc/composesample/
+│   │   ├── ui/ComponentShowcaseScreen.kt # Interactive visual catalog of all 23 components
+│   │   ├── ui/screens/                # Forms, Lists, Paging, Adaptive Layouts, Dialogs
+│   │   └── data/                      # Repositories & Mock Data
+├── sample/                            # Reference Implementation with XML & MVVM (:sample)
 │   ├── src/main/java/com/vc/sample/
 │   │   ├── data/                      # UserApiService, AppDatabase, UserDao, UserRepository
 │   │   ├── ui/                        # LoginActivity, HomeActivity, UserAdapter, BottomSheet
@@ -959,6 +995,440 @@ binding.recyclerView.onLoadMore(threshold = 3) { nextPage ->
     viewModel.loadPage(nextPage)
 }
 ```
+
+---
+
+## 29. Jetpack Compose Core Library (`:compose-core`)
+
+The `:compose-core` module is a complete, production-grade Jetpack Compose foundation built on Material 3, modern MVI architecture, and clean separation of concerns. It is designed to be 100% reusable across multiple Android apps without project-specific business logic or hardcoded assets.
+
+### Installation
+
+```kotlin
+// settings.gradle.kts
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven { url = uri("https://jitpack.io") }
+    }
+}
+
+// build.gradle.kts (:app or feature module)
+dependencies {
+    implementation("com.github.viralkalathiyainfotech.AndroidLibrary:compose-core:compose-1.0.0")
+    // Or in multi-module project:
+    implementation(project(":compose-core"))
+}
+```
+
+---
+
+<a name="compose-mvi-architecture"></a>
+### 1. Architecture & MVI Unidirectional Data Flow
+
+`:compose-core` adopts a pure **MVI (Model-View-Intent)** architecture with distinct contracts:
+
+```
+                  ┌──────────────────────┐
+                  │    User Actions /    │
+                  │      UiAction        │
+                  └──────────┬───────────┘
+                             │ onAction(action)
+                             ▼
+                  ┌──────────────────────┐
+                  │ BaseComposeViewModel │
+                  └──────┬────────┬──────┘
+       _viewState.update │        │ _effect.emit()
+                         ▼        ▼
+┌──────────────────────────┐    ┌──────────────────────────┐
+│   ViewState (StateFlow)   │    │  UiEffect (SharedFlow)   │
+│   Immutable Screen State │    │  Single-Shot Events      │
+│  (Loading, Content, Data)│    │  (Nav, Toast, SnackBar)  │
+└────────────┬─────────────┘    └────────────┬─────────────┘
+             │ collectAsStateWithLifecycle   │ CollectEffect
+             ▼                               ▼
+┌──────────────────────────────────────────────────────────┐
+│                      Compose UI                          │
+│   BaseStatefulScreen / BaseStatelessScreen / Components  │
+└──────────────────────────────────────────────────────────┘
+```
+
+#### Contract Interfaces:
+- `ViewState`: Marker interface for immutable data representations of the UI.
+- `UiAction`: User interactions dispatched from UI to ViewModel (`OnSubmitClicked`, `OnItemSwiped`).
+- `UiEvent`: Domain or presentation events.
+- `UiEffect`: Single-shot side effects (`NavigateToHome`, `ShowToast`, `OpenUrl`).
+- `ScreenState<T>`: Sealed class for standard screen modes (`Initial`, `Loading`, `Success(data)`, `Empty`, `Error(message, throwable)`).
+
+#### Example ViewModel:
+```kotlin
+data class UsersViewState(
+    val users: List<User> = emptyList(),
+    val isRefreshing: Boolean = false
+) : ViewState
+
+sealed interface UsersAction : UiAction {
+    data object Refresh : UsersAction
+    data class SelectUser(val user: User) : UsersAction
+}
+
+sealed interface UsersEffect : UiEffect {
+    data class NavigateToDetails(val userId: Long) : UsersEffect
+    data class ShowSnackbar(val message: String) : UsersEffect
+}
+
+@HiltViewModel
+class UsersViewModel @Inject constructor(
+    private val userRepository: UserRepository
+) : BaseComposeViewModel<UsersViewState, UsersAction, UsersEffect>(UsersViewState()) {
+
+    init {
+        loadUsers()
+    }
+
+    override fun onAction(action: UsersAction) {
+        when (action) {
+            UsersAction.Refresh -> refresh()
+            is UsersAction.SelectUser -> sendEffect(UsersEffect.NavigateToDetails(action.user.id))
+        }
+    }
+
+    private fun loadUsers() {
+        launchWithState {
+            userRepository.getUsers().collect { result ->
+                when (result) {
+                    is NetworkResult.Success -> updateState { copy(users = result.data) }
+                    is NetworkResult.Error -> sendEffect(UsersEffect.ShowSnackbar(result.error.userFriendlyMessage))
+                    else -> Unit
+                }
+            }
+        }
+    }
+}
+```
+
+---
+
+<a name="compose-base-components"></a>
+### 2. Base Components & Screens
+
+- **`BaseComposeActivity`**: Base activity handling edge-to-edge layout, system bars, back handling, and theme provisioning automatically.
+- **`BaseComposeViewModel`**: Full lifecycle-safe coroutine launchers, state updating with `updateState { copy(...) }`, and effect dispatch with `sendEffect(effect)`.
+- **`BaseScreen`**: High-level screen container with customizable top bar, bottom bar, snackbar host, and floating action button.
+- **`BaseStatefulScreen` & `BaseStatelessScreen`**: Standardized pattern separating ViewModel-observing containers from pure previewable Composable layouts.
+- **`CoreStateScreen`**: Declarative layout switcher rendering loading skeletons, empty states, error retry views, or content based on `ScreenState<T>`.
+
+```kotlin
+@Composable
+fun UsersScreen(
+    viewModel: UsersViewModel = hiltViewModel(),
+    onNavigateToDetails: (Long) -> Unit
+) {
+    val state by viewModel.viewState.collectAsStateWithLifecycle()
+
+    // Lifecycle-aware effect collector
+    CollectEffect(viewModel.effect) { effect ->
+        when (effect) {
+            is UsersEffect.NavigateToDetails -> onNavigateToDetails(effect.userId)
+            is UsersEffect.ShowSnackbar -> { /* show snackbar */ }
+        }
+    }
+
+    UsersContent(
+        state = state,
+        onAction = viewModel::onAction
+    )
+}
+
+@Composable
+fun UsersContent(
+    state: UsersViewState,
+    onAction: (UsersAction) -> Unit
+) {
+    CoreStateScreen(
+        state = if (state.users.isEmpty()) ScreenState.Empty() else ScreenState.Success(state.users),
+        onRetry = { onAction(UsersAction.Refresh) }
+    ) { users ->
+        CoreLazyColumn(
+            items = users,
+            itemKey = { it.id }
+        ) { user ->
+            UserCard(user = user, onClick = { onAction(UsersAction.SelectUser(user)) })
+        }
+    }
+}
+```
+
+---
+
+<a name="compose-theme--design-tokens"></a>
+### 3. Design Tokens & Theme Engine
+
+Design tokens enforce a cohesive visual rhythm across spacing, corner radii, elevation, and animation durations:
+
+```kotlin
+// Spacing Tokens
+CoreSpacing.xxs  // 2.dp
+CoreSpacing.xs   // 4.dp
+CoreSpacing.sm   // 8.dp
+CoreSpacing.md   // 16.dp
+CoreSpacing.lg   // 24.dp
+CoreSpacing.xl   // 32.dp
+CoreSpacing.xxl  // 48.dp
+
+// Corner Radii Tokens
+CoreRadius.none  // 0.dp
+CoreRadius.small // 4.dp
+CoreRadius.medium// 8.dp
+CoreRadius.large // 16.dp
+CoreRadius.full  // 999.dp (Pill)
+
+// Theme Accessor
+CoreTheme.colors.primary
+CoreTheme.typography.titleLarge
+CoreTheme.spacing.md
+```
+
+Wrap your application or screen in `CoreTheme`:
+```kotlin
+CoreTheme(darkTheme = isSystemInDarkTheme()) {
+    // App content
+}
+```
+
+---
+
+<a name="compose-ui-components"></a>
+### 4. Production UI Components Catalog
+
+`:compose-core` ships with 23 atomic and composite UI components:
+
+| Category | Components |
+|---|---|
+| **Buttons** | `CoreButton`, `CoreOutlinedButton`, `CoreTextButton`, `CoreElevatedButton`, `CoreIconButton`, `CoreFloatingActionButton` |
+| **Form Inputs** | `CoreSimpleTextField`, `CoreSimpleEmailField`, `CoreSimplePasswordField`, `CoreSimpleSearchField`, `CoreTextField`, `CoreOutlinedTextField`, `CorePasswordTextField`, `CoreSearchField`, `CoreOtpField` |
+| **Selection** | `CoreCheckbox`, `CoreRadioButton`, `CoreSwitch` |
+| **Chips** | `CoreChip`, `CoreAssistChip`, `CoreFilterChip`, `CoreInputChip`, `CoreSuggestionChip` |
+| **Surfaces & Cards** | `CoreCard`, `CoreElevatedCard`, `CoreOutlinedCard` |
+| **Navigation & Bars** | `CoreTopAppBar`, `CoreNavigationBar`, `CoreTabRow`, `CoreScrollableTabRow` |
+| **Overlays & Dialogs** | `CoreAlertDialog`, `CoreConfirmDialog`, `CoreLoadingDialog`, `CoreBottomSheet` |
+| **Feedback & Status** | `CoreSnackbar`, `CoreCircularProgress`, `CoreLinearProgress`, `CoreSkeletonLoader`, `CoreEmptyState`, `CoreErrorState` |
+| **Media & Tooltips** | `CoreAsyncImage`, `CoreAvatar`, `CoreBadge`, `CoreDivider`, `CoreDropdown`, `CoreTooltip` |
+
+```kotlin
+// Modern Simple Text Field (Top Label, Placeholder, Unbroken Outline Border)
+CoreSimpleEmailField(
+    value = email,
+    onValueChange = { email = it },
+    label = "Email Address",
+    placeholder = "Enter your email",
+    isRequired = true,
+    error = if (isError) "Invalid email address" else null
+)
+
+// Interactive Button with Loading State
+CoreButton(
+    text = "Submit Application",
+    onClick = { viewModel.submit() },
+    isLoading = state.isLoading,
+    enabled = state.isValid
+)
+
+// Secure OTP Verification Field
+CoreOtpField(
+    otpValue = state.otp,
+    onOtpChange = { newOtp -> viewModel.updateOtp(newOtp) },
+    length = 6,
+    isError = state.isOtpInvalid
+)
+
+// Confirmation Dialog with Danger Tinting
+CoreConfirmDialog(
+    visible = showDeleteDialog,
+    title = "Delete Account",
+    message = "Are you sure? This action cannot be undone.",
+    confirmText = "Delete Permanently",
+    isDanger = true,
+    onConfirm = { viewModel.deleteAccount() },
+    onDismiss = { showDeleteDialog = false }
+)
+```
+
+---
+
+<a name="compose-form-architecture"></a>
+### 5. Form Architecture & Declarative Validation
+
+Managing form state and input validation in Compose is declarative and bulletproof:
+
+```kotlin
+val emailField = remember {
+    FormFieldState(
+        initialValue = "",
+        validators = listOf(
+            RequiredValidator("Email is required"),
+            EmailValidator("Enter a valid email address")
+        )
+    )
+}
+
+val passwordField = remember {
+    FormFieldState(
+        initialValue = "",
+        validators = listOf(
+            RequiredValidator("Password is required"),
+            MinLengthValidator(8, "Password must be at least 8 characters")
+        )
+    )
+}
+
+val formState = rememberCoreForm(emailField, passwordField)
+
+// UI
+CoreTextField(
+    value = emailField.value,
+    onValueChange = emailField::onValueChange,
+    error = emailField.error,
+    label = "Email Address"
+)
+
+CorePasswordTextField(
+    value = passwordField.value,
+    onValueChange = passwordField::onValueChange,
+    error = passwordField.error,
+    label = "Password"
+)
+
+CoreButton(
+    text = "Log In",
+    onClick = {
+        if (formState.validate()) {
+            viewModel.login(emailField.value, passwordField.value)
+        }
+    }
+)
+```
+
+#### Built-In Validators:
+- `RequiredValidator`
+- `EmailValidator`
+- `MinLengthValidator` / `MaxLengthValidator`
+- `ExactLengthValidator`
+- `RegexValidator`
+- `NumericValidator`
+- `PhoneValidator`
+- `UrlValidator`
+- `MatchesFieldValidator` (e.g. Confirm Password)
+- `CustomValidator`
+
+---
+
+<a name="compose-responsive--adaptive"></a>
+### 6. Responsive Layouts & Window Size Classes
+
+Build adaptive multi-device UIs effortlessly with responsive breakpoints:
+
+```kotlin
+val windowSizeClass = rememberCoreWindowSizeClass()
+
+ResponsiveLayout(
+    compact = {
+        // Phone Layout: Single column with bottom navigation
+        PhoneContent()
+    },
+    medium = {
+        // Foldable / Small Tablet: Dual-pane or expanded layout
+        TabletContent()
+    },
+    expanded = {
+        // Large Tablet / Desktop: Navigation rail with master-detail view
+        DesktopSplitContent()
+    }
+)
+
+// Adaptive Scaffold with automatic BottomBar <-> NavigationRail switching
+AdaptiveScaffold(
+    topBar = { CoreTopAppBar(title = "Dashboard") },
+    navigationItems = navItems,
+    selectedItem = selectedRoute,
+    onItemSelected = { navigateTo(it) }
+) { padding ->
+    ScreenContent(modifier = Modifier.padding(padding))
+}
+```
+
+---
+
+<a name="compose-permissions--media"></a>
+### 7. Permissions & Media Picker
+
+Handling runtime permissions and image/document picking without boilerplate:
+
+```kotlin
+// Runtime Permissions with automatic Rationale Dialog
+val permissionManager = rememberCorePermissionManager(
+    permissions = listOf(Manifest.permission.CAMERA),
+    onGranted = { openCamera() },
+    onDenied = { showDeniedMessage() }
+)
+
+CoreButton(
+    text = "Scan QR Code",
+    onClick = { permissionManager.launch() }
+)
+
+// Media Picker (Camera, Gallery, Multi-image, Documents)
+val mediaPicker = rememberCoreMediaPicker { uris ->
+    uris.firstOrNull()?.let { uri -> viewModel.uploadAvatar(uri) }
+}
+
+CoreButton(
+    text = "Select Profile Photo",
+    onClick = { mediaPicker.pickSingleImage() }
+)
+```
+
+---
+
+<a name="compose-navigation"></a>
+### 8. Compose Navigation Engine
+
+Type-safe navigation routes, arguments, and built-in smooth transitions:
+
+```kotlin
+val navController = rememberNavController()
+
+CoreNavHost(
+    navController = navController,
+    startDestination = "home"
+) {
+    coreComposable("home") {
+        HomeScreen(onNavigateToProfile = { userId ->
+            navController.navigate("profile/$userId")
+        })
+    }
+
+    coreComposable(
+        route = "profile/{userId}",
+        arguments = listOf(navArgument("userId") { type = NavType.LongType })
+    ) { backStackEntry ->
+        val userId = backStackEntry.arguments?.getLong("userId") ?: 0L
+        ProfileScreen(userId = userId)
+    }
+}
+```
+
+---
+
+<a name="compose-migration-guide"></a>
+### 9. Migration Guide from View-Based Core
+
+`:compose-core` seamlessly bridges with the existing `:core` architecture:
+
+1. **Keep Your Business & Data Layers**: Continue using `:core`'s `RetrofitProvider`, `BaseRepository`, `RoomDatabase`, `DataStoreManager`, and `AppError`.
+2. **Transition ViewModels to `BaseComposeViewModel`**: Expose a single immutable `ViewState` and handle actions through `onAction(action)`.
+3. **Bridge API Results**: Map `NetworkResult<T>` directly to `ScreenState<T>` or update your `ViewState` via `launchWithState {}`.
+4. **Decouple Resources**: Use `CoreText` and `CoreDrawable` in ViewModels so view models remain 100% unit-testable without Android framework mocks.
 
 ---
 
