@@ -9,6 +9,11 @@
 
 A production-ready, modular, and reusable Android core library engineered in Kotlin. Designed following **Clean Architecture** and **SOLID** principles, `AndroidCoreLibrary` provides battle-tested foundational building blocks for modern Android applications without application-specific business logic or tight coupling.
 
+> [!TIP]
+> 📚 **Complete Documentation & Guides:**
+> - **[Master Developer Guide](docs/COMPLETE_DOCUMENTATION.md)** – Comprehensive manual covering `:core` and `:compose-core`, design system, forms, and recipes.
+> - **[Networking & API Calls Guide](docs/API_CALL_GUIDE.md)** – Step-by-step guide for Simple 1-line calls, `launchApi()`, custom loading/error states, and `observeData()`.
+
 ---
 
 ## Table of Contents
@@ -398,6 +403,10 @@ class UserViewModel(private val repository: UserRepository) : BaseViewModel() {
 ---
 
 ## 9. Networking Architecture & Retrofit
+
+> [!TIP]
+> 📖 **Complete Step-by-Step Guide Available**:  
+> For an in-depth walkthrough on simple 1-line calls, `BaseViewModel.launchApi()`, custom screen-level loading, error handling, and `observeData()` event handling, see the [Networking & API Call Complete Guide](docs/API_CALL_GUIDE.md).
 
 ### RetrofitProvider
 Creates flexible, isolated Retrofit instances:
