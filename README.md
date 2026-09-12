@@ -956,16 +956,55 @@ binding.etSearch.onSearchQuery(debounceMs = 400L, scope = lifecycleScope) { quer
 }
 ```
 
-### 2. Type-Safe Clean Navigation (`openActivity`)
+### 2. Type-Safe Clean Navigation (`startActivity` / `openActivity`)
 ```kotlin
-// In Activity or Fragment:
-openActivity<UserDetailActivity> {
+// 1. Simplest one-liner (Context, Activity, or Fragment):
+startActivity<LoginActivity>()
+
+// 2. Open and finish current screen:
+startActivityAndFinish<HomeActivity>()
+
+// 3. Clear task / backstack (e.g. Logout / Splash):
+startActivityClearTask<LoginActivity>()
+
+// 4. Pass key-value extras directly:
+startActivity<UserDetailActivity>(
+    "user_id" to 42,
+    "user_name" to "Viral",
+    "is_admin" to true
+)
+
+// 5. With Intent builder lambda:
+startActivity<UserDetailActivity> {
     putExtra("user_id", user.id)
     putExtra("user_name", user.name)
 }
 
-// Open and finish current screen:
-openActivityAndFinish<HomeActivity>()
+// 6. Create Intent only:
+val intent = intentOf<LoginActivity>("source" to "notification")
+
+// 7. Finish with Result (Zero boilerplate):
+finishWithResultOk("is_updated" to true, "item_id" to 42)
+finishWithResultCanceled()
+
+// 8. Property Delegates for Extras & Args (Lazy & Safe):
+// In Activity:
+private val userId: Int by extra("user_id", -1)
+private val userName: String? by extraOrNull("user_name")
+// In Fragment:
+private val tabId: Int by arg("tab_id", 0)
+
+// 9. Fragment with arguments:
+val fragment = newFragment<UserDetailFragment>("user_id" to 42)
+
+// 10. System intents:
+openUrl("https://github.com")
+shareText("Check out this library!")
+dialNumber("+1234567890")
+openAppSettings()
+openPlayStore()
+openWhatsAppChat("+919876543210", "Hello!")
+openMapLocation(21.1702, 72.8311, "Surat")
 ```
 
 ### 3. Coil Image Loading Extensions

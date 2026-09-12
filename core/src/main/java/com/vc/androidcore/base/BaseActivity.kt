@@ -1,7 +1,9 @@
 package com.vc.androidcore.base
 
+import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import com.vc.androidcore.utils.startActivity
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -189,6 +191,21 @@ abstract class BaseActivity<VB : ViewBinding> : AppCompatActivity() {
         if (finishCurrent) {
             finish()
         }
+    }
+
+    inline fun <reified T : Activity> navigateTo(
+        finishCurrent: Boolean = false,
+        noinline init: (Intent.() -> Unit)? = null
+    ) {
+        startActivity<T>(finishCurrent = finishCurrent, init = init)
+    }
+
+    inline fun <reified T : Activity> navigateTo(
+        first: Pair<String, Any?>,
+        vararg rest: Pair<String, Any?>,
+        finishCurrent: Boolean = false
+    ) {
+        startActivity<T>(first, *rest, finishCurrent = finishCurrent)
     }
 
     // --- Keyboard Helpers ---
