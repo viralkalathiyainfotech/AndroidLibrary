@@ -42,7 +42,7 @@ A production-ready, modular, and reusable Android core library engineered in Kot
 22. [ProGuard & R8 Optimization](#22-proguard--r8-optimization)
 23. [Standalone Architecture (No ViewModel)](#23-standalone-architecture-no-viewmodel)
 24. [Modern Permission Manager](#24-modern-permission-manager)
-25. [File / Image Upload & Multipart Helper](#25-file--image-upload--multipart-helper)
+25. [File / Image Upload, Photo Picker & Image Compressor](#25-file--image-upload-photo-picker--image-compressor)
 26. [Unified Single-Call API Architecture](#26-unified-single-call-api-architecture)
 27. [BaseViewModel Single-Line API Architecture](#27-baseviewmodel-single-line-api-architecture)
 28. [Developer Ergonomics Toolkit (Navigation, Search, Dialogs, Pagination)](#28-developer-ergonomics-toolkit)
@@ -818,8 +818,53 @@ val hasCamera = hasPermission(Manifest.permission.CAMERA)
 
 ---
 
-## 25. File / Image Upload & Multipart Helper
+## 25. File / Image Upload, Photo Picker & Image Compressor
 
+### 1. Modern Photo Picker (`PhotoPickerHelper`)
+Supports Android 13+ Photo Picker (`PickVisualMedia`) with full backwards compatibility and **zero storage permissions required**:
+
+```kotlin
+// In Activity or Fragment:
+val photoPicker = PhotoPickerHelper(this) { uri ->
+    uri?.let { binding.ivAvatar.setImageURI(it) }
+}
+
+// Single Image:
+binding.btnSelectPhoto.setOnClickListener {
+    photoPicker.pickImage() // or pickVideo(), pickMedia()
+}
+
+// Multiple Images:
+val multiPicker = MultiPhotoPickerHelper(this, maxItems = 5) { uris ->
+    imageAdapter.submitList(uris)
+}
+binding.btnSelectGallery.setOnClickListener {
+    multiPicker.pickImages()
+}
+```
+
+### 2. Intelligent Image Compressor (`ImageCompressor`)
+Runs in the background (`Dispatchers.IO`), downscales large camera resolutions (e.g. max 1920x1080), auto-corrects EXIF rotation, and iteratively steps down quality until target file size (e.g. 500 KB) is met:
+
+```kotlin
+lifecycleScope.launch {
+    // Option A: Compress Uri directly to cached File
+    val compressedFile: File = photoUri.compressImage(
+        context = this@MainActivity,
+        maxFileSizeKb = 400
+    )
+
+    // Option B: Convert directly to Retrofit MultipartBody.Part in 1 line
+    val avatarPart: MultipartBody.Part = photoUri.toCompressedMultipartPart(
+        context = this@MainActivity,
+        partName = "avatar",
+        maxFileSizeKb = 500
+    )
+    apiService.uploadAvatar(avatarPart)
+}
+```
+
+### 3. MultipartHelper
 `MultipartHelper` and `ProgressRequestBody` provide a complete toolkit for building multipart payloads from `File`, `Uri`, or `ByteArray` with real-time progress callbacks:
 
 ```kotlin
