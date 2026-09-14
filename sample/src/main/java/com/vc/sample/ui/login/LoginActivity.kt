@@ -1,4 +1,4 @@
-﻿package com.vc.sample.ui.login
+package com.vc.sample.ui.login
 
 import android.os.Bundle
 import com.vc.androidcore.base.BaseActivity
@@ -14,14 +14,14 @@ class LoginActivity : BaseActivity<ActivityLoginBinding>() {
 
     private lateinit var viewModel: LoginViewModel
 
-    override fun inflateBinding(): ActivityLoginBinding {
-        return ActivityLoginBinding.inflate(layoutInflater)
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         val app = application as SampleApplication
         viewModel = LoginViewModel(app.dataStoreManager)
         super.onCreate(savedInstanceState)
+    }
+
+    override fun setupUI() {
+        // UI configuration
     }
 
     override fun setupListeners() {

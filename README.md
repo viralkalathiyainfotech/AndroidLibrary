@@ -282,10 +282,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 
     private val viewModel: MainViewModel by viewModels()
 
-    override fun inflateBinding(): ActivityMainBinding {
-        return ActivityMainBinding.inflate(layoutInflater)
-    }
-
     override fun setupUI() {
         setupToolbar(binding.toolbar, title = "Dashboard", displayHomeAsUp = false)
     }
@@ -750,8 +746,6 @@ class StandaloneActivity : BaseActivity<ActivityStandaloneBinding>() {
 
     // 4. Direct Network Connectivity via Core's LiveNetworkMonitor
     private val networkMonitor by lazy { LiveNetworkMonitor(applicationContext) }
-
-    override fun inflateBinding() = ActivityStandaloneBinding.inflate(layoutInflater)
 
     private fun fetchUsersDirectly() {
         // Pre-check connectivity synchronously

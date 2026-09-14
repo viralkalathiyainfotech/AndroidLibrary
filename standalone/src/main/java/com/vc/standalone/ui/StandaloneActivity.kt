@@ -73,10 +73,6 @@ class StandaloneActivity : BaseActivity<ActivityStandaloneBinding>() {
     // 4. User list adapter extending Core's BaseListAdapter
     private lateinit var userAdapter: StandaloneUserAdapter
 
-    override fun inflateBinding(): ActivityStandaloneBinding {
-        return ActivityStandaloneBinding.inflate(layoutInflater)
-    }
-
     override fun setupUI() {
         // Setup Toolbar using BaseActivity helper
         setupToolbar(

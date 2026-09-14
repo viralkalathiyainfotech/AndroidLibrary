@@ -27,10 +27,6 @@ class HomeActivity : BaseActivity<ActivityHomeBinding>() {
     private lateinit var viewModel: HomeViewModel
     private lateinit var adapter: UserAdapter
 
-    override fun inflateBinding(): ActivityHomeBinding {
-        return ActivityHomeBinding.inflate(layoutInflater)
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         val app = application as SampleApplication
         viewModel = HomeViewModel(

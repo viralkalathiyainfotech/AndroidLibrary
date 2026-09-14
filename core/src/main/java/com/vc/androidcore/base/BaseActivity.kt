@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import com.vc.androidcore.utils.startActivity
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -31,6 +32,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import retrofit2.Response
+import java.lang.reflect.ParameterizedType
 
 /**
  * Base activity class providing ViewBinding inflation, lifecycle-aware coroutine collection,
@@ -53,7 +55,29 @@ abstract class BaseActivity<VB : ViewBinding> : AppCompatActivity() {
      */
     val networkMonitor: LiveNetworkMonitor by lazy { LiveNetworkMonitor(applicationContext) }
 
-    abstract fun inflateBinding(): VB
+    /**
+     * Automatically inflates the [ViewBinding] via reflection by finding the generic type parameter [VB].
+     * Subclasses can still override this if custom inflation behavior is required.
+     */
+    @Suppress("UNCHECKED_CAST")
+    protected open fun inflateBinding(): VB {
+        var currentClass: Class<*>? = javaClass
+        while (currentClass != null && currentClass != Any::class.java) {
+            val genericSuperclass = currentClass.genericSuperclass
+            if (genericSuperclass is ParameterizedType) {
+                val bindingType = genericSuperclass.actualTypeArguments.firstOrNull { arg ->
+                    arg is Class<*> && ViewBinding::class.java.isAssignableFrom(arg)
+                }
+                if (bindingType != null) {
+                    val bindingClass = bindingType as Class<VB>
+                    val inflateMethod = bindingClass.getMethod("inflate", LayoutInflater::class.java)
+                    return inflateMethod.invoke(null, layoutInflater) as VB
+                }
+            }
+            currentClass = currentClass.superclass
+        }
+        error("Unable to automatically inflate ViewBinding for ${javaClass.simpleName}. Please override inflateBinding() manually.")
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,8 +91,19 @@ abstract class BaseActivity<VB : ViewBinding> : AppCompatActivity() {
         observeData()
     }
 
-    protected open fun setupUI() {}
-    protected open fun setupListeners() {}
+    /**
+     * Called in [onCreate] to initialize and configure views, toolbars, and adapters.
+     */
+    protected abstract fun setupUI()
+
+    /**
+     * Called in [onCreate] to attach click and UI event listeners.
+     */
+    protected abstract fun setupListeners()
+
+    /**
+     * Called in [onCreate] to observe ViewModel state flows or events.
+     */
     protected open fun observeData() {}
 
     /**
