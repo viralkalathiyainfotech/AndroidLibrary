@@ -1057,7 +1057,8 @@ dependencyResolutionManagement {
 
 // build.gradle.kts (:app or feature module)
 dependencies {
-    implementation("com.github.viralkalathiyainfotech.AndroidLibrary:compose-core:compose-1.0.0")
+    // Pure Jetpack Compose Foundation (100% Standalone - zero dependency on :core XML views)
+    implementation("com.github.viralkalathiyainfotech.AndroidLibrary:compose-core:1.5.0")
     // Or in multi-module project:
     implementation(project(":compose-core"))
 }

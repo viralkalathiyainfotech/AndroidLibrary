@@ -55,15 +55,17 @@ afterEvaluate {
                 from(components["release"])
                 groupId = project.findProperty("group")?.toString() ?: "com.github.viralkalathiyainfotech"
                 artifactId = "compose-core"
-                version = project.findProperty("version")?.toString()?.takeIf { it != "unspecified" } ?: "compose-1.0.0"
+                version = project.findProperty("version")?.toString()?.takeIf { it != "unspecified" } ?: "1.5.0"
             }
         }
     }
 }
-
 dependencies {
-    // Core Module Integration
-    api(project(":core"))
+    // Core Android & Coroutines Foundation (Standalone - no dependency on :core)
+    api(libs.androidx.core.ktx)
+    api(libs.kotlinx.coroutines.core)
+    api(libs.kotlinx.coroutines.android)
+    api(libs.retrofit)
 
     // Jetpack Compose Architecture & UI
     api(platform(libs.compose.bom))

@@ -2,11 +2,11 @@ package com.vc.composecore.base
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.vc.androidcore.error.AppError
-import com.vc.androidcore.error.ErrorMapper
-import com.vc.androidcore.logging.CoreLogger
-import com.vc.androidcore.network.NetworkResult
-import com.vc.androidcore.network.safeApiCall
+import com.vc.composecore.error.AppError
+import com.vc.composecore.error.ErrorMapper
+import com.vc.composecore.logging.CoreLogger
+import com.vc.composecore.network.NetworkResult
+import com.vc.composecore.network.safeApiCall
 import com.vc.composecore.state.UiAction
 import com.vc.composecore.state.UiEffect
 import com.vc.composecore.state.ViewState

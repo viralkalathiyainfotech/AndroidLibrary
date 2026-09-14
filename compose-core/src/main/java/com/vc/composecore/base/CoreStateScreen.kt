@@ -4,8 +4,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.vc.androidcore.error.AppError
-import com.vc.androidcore.state.UiState
+import com.vc.composecore.error.AppError
+import com.vc.composecore.state.UiState
 import com.vc.composecore.components.loading.CoreLoadingOverlay
 import com.vc.composecore.components.status.CoreEmptyView
 import com.vc.composecore.components.status.CoreErrorView

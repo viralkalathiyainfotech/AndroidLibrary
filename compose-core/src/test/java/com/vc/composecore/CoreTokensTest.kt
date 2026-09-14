@@ -1,8 +1,8 @@
 package com.vc.composecore
 
 import androidx.compose.ui.unit.dp
-import com.vc.androidcore.error.AppError
-import com.vc.androidcore.state.UiState
+import com.vc.composecore.error.AppError
+import com.vc.composecore.state.UiState
 import com.vc.composecore.resources.asCoreText
 import com.vc.composecore.state.ScreenState
 import com.vc.composecore.state.toScreenState

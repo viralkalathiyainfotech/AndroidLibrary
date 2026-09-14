@@ -1,8 +1,7 @@
 package com.vc.composecore.state
 
 import androidx.compose.runtime.Immutable
-import com.vc.androidcore.error.AppError
-import com.vc.androidcore.state.UiState
+import com.vc.composecore.error.AppError
 import com.vc.composecore.resources.CoreText
 
 /**
