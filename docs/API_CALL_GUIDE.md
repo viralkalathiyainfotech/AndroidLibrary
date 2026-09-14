@@ -343,10 +343,7 @@ class ProductsActivity : BaseActivity<ActivityProductsBinding>() {
     private val viewModel by viewModels<ProductsViewModel>()
     private val adapter = ProductsAdapter()
 
-    override fun inflateBinding(): ActivityProductsBinding =
-        ActivityProductsBinding.inflate(layoutInflater)
-
-    override fun setupViews() {
+    override fun setupUI() {
         binding.recyclerView.adapter = adapter
         viewModel.loadProducts()
     }

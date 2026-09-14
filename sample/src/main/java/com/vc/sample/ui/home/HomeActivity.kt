@@ -10,10 +10,13 @@ import com.vc.androidcore.utils.onDebouncedQueryChange
 import com.vc.androidcore.utils.setOnDebouncedClickListener
 import com.vc.androidcore.utils.setVerticalLayout
 import com.vc.androidcore.utils.visible
+import com.vc.androidcore.media.PhotoPickerHelper
+import com.vc.androidcore.media.compressImage
 import com.vc.sample.R
 import com.vc.sample.SampleApplication
 import com.vc.sample.databinding.ActivityHomeBinding
 import com.vc.sample.ui.detail.UserDetailBottomSheet
+import kotlinx.coroutines.launch
 
 /**
  * Home screen showcasing:
@@ -21,11 +24,29 @@ import com.vc.sample.ui.detail.UserDetailBottomSheet
  * 2. Isolated Room Database Call (Room DB Only)
  * 3. Combined Offline-First Pipeline: API ➔ Room DB ➔ UI List
  * 4. Real-time connectivity status & debounced search
+ * 5. Modern PhotoPickerHelper and ImageCompressor
  */
 class HomeActivity : BaseActivity<ActivityHomeBinding>() {
 
     private lateinit var viewModel: HomeViewModel
     private lateinit var adapter: UserAdapter
+
+    // Modern PhotoPickerHelper demonstration with background image compression
+    private val photoPicker = PhotoPickerHelper(this) { uri ->
+        uri?.let { selectedUri ->
+            lifecycleScope.launch {
+                showLoading("Compressing photo...")
+                try {
+                    val compressedFile = selectedUri.compressImage(this@HomeActivity, maxFileSizeKb = 300)
+                    showToast("Photo compressed: ${compressedFile.length() / 1024} KB")
+                } catch (e: Exception) {
+                    showError("Failed to compress: ${e.message}")
+                } finally {
+                    hideLoading()
+                }
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val app = application as SampleApplication
@@ -46,6 +67,11 @@ class HomeActivity : BaseActivity<ActivityHomeBinding>() {
     override fun setupListeners() {
         adapter.onItemClickListener = { user, _ ->
             UserDetailBottomSheet(user).show(supportFragmentManager, "UserDetail")
+        }
+
+        // Action 0: PhotoPicker & ImageCompressor Demo
+        binding.btnPickPhoto.setOnDebouncedClickListener {
+            photoPicker.pickImage()
         }
 
         // Action 1: Combined Offline-First Pipeline (API ➔ Save to Room ➔ Read from Room ➔ Show in List)

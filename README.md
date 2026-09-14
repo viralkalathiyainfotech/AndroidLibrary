@@ -1,7 +1,8 @@
 # AndroidCoreLibrary
 
 [![JitPack](https://jitpack.io/v/viralkalathiyainfotech/AndroidLibrary.svg)](https://jitpack.io/#viralkalathiyainfotech/AndroidLibrary)
-[![Version](https://img.shields.io/badge/version-2.1.0-blue.svg)](https://semver.org)
+[![Build & Test](https://github.com/viralkalathiyainfotech/AndroidLibrary/actions/workflows/ci.yml/badge.svg)](https://github.com/viralkalathiyainfotech/AndroidLibrary/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](https://semver.org)
 [![Platform](https://img.shields.io/badge/platform-Android-green.svg)](https://developer.android.com)
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-purple.svg)](https://kotlinlang.org)
 [![MinSdk](https://img.shields.io/badge/minSdk-24-orange.svg)](https://developer.android.com)
@@ -199,14 +200,14 @@ In your app module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.viralkalathiyainfotech.AndroidLibrary:core:2.1.0")
+    implementation("com.github.viralkalathiyainfotech.AndroidLibrary:core:1.5.0")
 }
 ```
 
 *Or in Groovy (`build.gradle`):*
 ```groovy
 dependencies {
-    implementation 'com.github.viralkalathiyainfotech.AndroidLibrary:core:2.1.0'
+    implementation 'com.github.viralkalathiyainfotech.AndroidLibrary:core:1.5.0'
 }
 ```
 

@@ -117,12 +117,8 @@ class ProfileActivity : BaseActivity<ActivityProfileBinding>() {
 
     private val viewModel by viewModels<ProfileViewModel>()
 
-    // 1. Inflate ViewBinding cleanly
-    override fun inflateBinding(): ActivityProfileBinding =
-        ActivityProfileBinding.inflate(layoutInflater)
-
-    // 2. Setup static views or toolbars
-    override fun setupViews() {
+    // 1. Setup UI and toolbars (ViewBinding is auto-inflated via reflection)
+    override fun setupUI() {
         setupToolbar(binding.toolbar, title = "My Profile", displayHomeAsUp = true)
     }
 
@@ -154,12 +150,12 @@ class ProfileActivity : BaseActivity<ActivityProfileBinding>() {
 ```kotlin
 class OrdersFragment : BaseFragment<FragmentOrdersBinding>() {
 
-    override fun inflateBinding(inflater: LayoutInflater, container: ViewGroup?): FragmentOrdersBinding {
-        return FragmentOrdersBinding.inflate(inflater, container, false)
+    // ViewBinding is automatically inflated via reflection
+    override fun setupUI() {
+        // Safe to access binding
     }
 
-    override fun setupViews() {
-        // Safe to access binding
+    override fun setupListeners() {
     }
 }
 ```
@@ -790,7 +786,8 @@ Text(text = welcomeMessage.asString())
 class LoginActivity : BaseActivity<ActivityLoginBinding>() {
     private val viewModel by viewModels<LoginViewModel>()
 
-    override fun inflateBinding() = ActivityLoginBinding.inflate(layoutInflater)
+    override fun setupUI() {
+    }
 
     override fun setupListeners() {
         binding.btnLogin.setOnDebouncedClickListener {
