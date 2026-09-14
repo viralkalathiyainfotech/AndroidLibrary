@@ -4,7 +4,9 @@
 -keepattributes InnerClasses
 -keepattributes EnclosingMethod
 
-# Keep ViewBinding inflate(LayoutInflater) methods for BaseActivity reflection
+# Keep ViewBinding inflate methods for BaseActivity & BaseFragment reflection
 -keepclassmembers class * implements androidx.viewbinding.ViewBinding {
     public static * inflate(android.view.LayoutInflater);
+    public static * inflate(android.view.LayoutInflater, android.view.ViewGroup, boolean);
 }
+

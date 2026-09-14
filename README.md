@@ -314,13 +314,6 @@ class MainActivity : BaseActivity<ActivityMainBinding>() {
 ```kotlin
 class ProfileFragment : BaseFragment<FragmentProfileBinding>() {
 
-    override fun inflateBinding(
-        inflater: LayoutInflater,
-        container: ViewGroup?
-    ): FragmentProfileBinding {
-        return FragmentProfileBinding.inflate(inflater, container, false)
-    }
-
     override fun setupUI() {
         // UI initialization
     }
@@ -343,8 +336,8 @@ Customizable modal dialogs with transparent backgrounds and dimension controls:
 class ConfirmDialog : BaseDialog<DialogConfirmBinding>() {
     override val widthPercent: Float = 0.85f
 
-    override fun inflateBinding(inflater: LayoutInflater, container: ViewGroup?): DialogConfirmBinding {
-        return DialogConfirmBinding.inflate(inflater, container, false)
+    override fun setupUI() {
+        // Dialog UI setup
     }
 
     override fun setupListeners() {
@@ -357,12 +350,13 @@ class ConfirmDialog : BaseDialog<DialogConfirmBinding>() {
 Expanded BottomSheet modal dialogs:
 ```kotlin
 class UserDetailBottomSheet(private val user: User) : BaseBottomSheetDialog<BottomSheetUserDetailBinding>() {
-    override fun inflateBinding(inflater: LayoutInflater, container: ViewGroup?): BottomSheetUserDetailBinding {
-        return BottomSheetUserDetailBinding.inflate(inflater, container, false)
-    }
 
     override fun setupUI() {
         binding.tvName.text = user.name
+    }
+
+    override fun setupListeners() {
+        binding.btnClose.setOnClickListener { dismiss() }
     }
 }
 ```
@@ -693,6 +687,8 @@ CoreLogger.d("User authenticated with token=eyJhbGciOi...")
 | **Debounce Utilities** | Search query debounce | `editText.onDebouncedQueryChange(scope) { query -> ... }` |
 | **Image Loading** | Coil wrapper | `imageView.loadImage(url, isCircle = true)` |
 | **Resource Utils** | Compatibility resource access | `context.getColorCompat(R.color.accent)` |
+| **Photo Picker** | Android 13+ modern media selection | `PhotoPickerHelper(this) { uri -> ... }.pickImage()` |
+| **Image Compressor** | Downscale & compress to target KB | `uri.toCompressedMultipartPart(context, "avatar")` |
 
 ---
 
@@ -1433,8 +1429,32 @@ CoreButton(
 
 ---
 
+<a name="compose-shimmer--skeleton"></a>
+### 8. Shimmer & Skeleton Loaders
+
+High-performance animated diagonal shimmer sweep with automatic Light/Dark mode adaptations:
+
+```kotlin
+// Modifier-level shimmer
+Box(
+    modifier = Modifier
+        .size(width = 120.dp, height = 20.dp)
+        .shimmer(shape = RoundedCornerShape(4.dp))
+)
+
+// Pre-built skeleton components:
+CoreShimmerCircle(size = 56.dp)
+CoreShimmerTextLine(widthFraction = 0.8f, height = 16.dp)
+CoreShimmerCard()
+
+// Ready-to-use skeleton feed placeholder:
+CoreShimmerList(count = 5)
+```
+
+---
+
 <a name="compose-navigation"></a>
-### 8. Compose Navigation Engine
+### 9. Compose Navigation Engine
 
 Type-safe navigation routes, arguments, and built-in smooth transitions:
 

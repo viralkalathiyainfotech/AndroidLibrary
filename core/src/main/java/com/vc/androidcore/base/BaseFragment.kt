@@ -27,6 +27,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import retrofit2.Response
 
+import java.lang.reflect.ParameterizedType
+
 /**
  * Base [Fragment] providing leak-safe ViewBinding lifecycle management,
  * coroutine collection helpers, loading dialogs, toasts, snackbars, and keyboard controls.
@@ -53,7 +55,42 @@ abstract class BaseFragment<VB : ViewBinding> : Fragment() {
         LiveNetworkMonitor(requireContext().applicationContext)
     }
 
-    abstract fun inflateBinding(inflater: LayoutInflater, container: ViewGroup?): VB
+    /**
+     * Automatically inflates the [ViewBinding] via reflection by finding generic type [VB].
+     * Subclasses can still override this if custom inflation behavior is required.
+     */
+    @Suppress("UNCHECKED_CAST")
+    protected open fun inflateBinding(inflater: LayoutInflater, container: ViewGroup?): VB {
+        var currentClass: Class<*>? = javaClass
+        while (currentClass != null && currentClass != Any::class.java) {
+            val genericSuperclass = currentClass.genericSuperclass
+            if (genericSuperclass is ParameterizedType) {
+                val bindingType = genericSuperclass.actualTypeArguments.firstOrNull { arg ->
+                    arg is Class<*> && ViewBinding::class.java.isAssignableFrom(arg)
+                }
+                if (bindingType != null) {
+                    val bindingClass = bindingType as Class<VB>
+                    val inflateMethod3 = runCatching {
+                        bindingClass.getMethod(
+                            "inflate",
+                            LayoutInflater::class.java,
+                            ViewGroup::class.java,
+                            Boolean::class.javaPrimitiveType
+                        )
+                    }.getOrNull()
+
+                    if (inflateMethod3 != null) {
+                        return inflateMethod3.invoke(null, inflater, container, false) as VB
+                    }
+
+                    val inflateMethod1 = bindingClass.getMethod("inflate", LayoutInflater::class.java)
+                    return inflateMethod1.invoke(null, inflater) as VB
+                }
+            }
+            currentClass = currentClass.superclass
+        }
+        error("Unable to automatically inflate ViewBinding for ${javaClass.simpleName}. Please override inflateBinding() manually.")
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -73,8 +110,19 @@ abstract class BaseFragment<VB : ViewBinding> : Fragment() {
         observeData()
     }
 
-    protected open fun setupUI() {}
-    protected open fun setupListeners() {}
+    /**
+     * Called in [onViewCreated] to initialize and configure views, toolbars, and adapters.
+     */
+    protected abstract fun setupUI()
+
+    /**
+     * Called in [onViewCreated] to attach click and UI event listeners.
+     */
+    protected abstract fun setupListeners()
+
+    /**
+     * Called in [onViewCreated] to observe ViewModel state flows or events.
+     */
     protected open fun observeData() {}
 
     /**

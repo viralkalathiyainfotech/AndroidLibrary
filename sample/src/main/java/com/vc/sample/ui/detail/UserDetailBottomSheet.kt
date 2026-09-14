@@ -1,7 +1,5 @@
-﻿package com.vc.sample.ui.detail
+package com.vc.sample.ui.detail
 
-import android.view.LayoutInflater
-import android.view.ViewGroup
 import com.vc.androidcore.base.BaseBottomSheetDialog
 import com.vc.sample.data.model.User
 import com.vc.sample.databinding.BottomSheetUserDetailBinding
@@ -12,13 +10,6 @@ import com.vc.sample.databinding.BottomSheetUserDetailBinding
 class UserDetailBottomSheet(
     private val user: User
 ) : BaseBottomSheetDialog<BottomSheetUserDetailBinding>() {
-
-    override fun inflateBinding(
-        inflater: LayoutInflater,
-        container: ViewGroup?
-    ): BottomSheetUserDetailBinding {
-        return BottomSheetUserDetailBinding.inflate(inflater, container, false)
-    }
 
     override fun setupUI() {
         binding.tvDetailName.text = user.name

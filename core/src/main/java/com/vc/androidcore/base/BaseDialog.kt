@@ -1,4 +1,4 @@
-﻿package com.vc.androidcore.base
+package com.vc.androidcore.base
 
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -11,6 +11,7 @@ import android.view.WindowManager
 import androidx.fragment.app.DialogFragment
 import androidx.viewbinding.ViewBinding
 import com.vc.androidcore.ui.dialog.LoadingDialog
+import java.lang.reflect.ParameterizedType
 
 /**
  * Base [DialogFragment] with generic ViewBinding, transparent background,
@@ -28,7 +29,42 @@ abstract class BaseDialog<VB : ViewBinding> : DialogFragment() {
     protected open val widthPercent: Float = 0.9f
     protected open val heightWrapContent: Boolean = true
 
-    abstract fun inflateBinding(inflater: LayoutInflater, container: ViewGroup?): VB
+    /**
+     * Automatically inflates the [ViewBinding] via reflection by finding generic type [VB].
+     * Subclasses can still override this if custom inflation behavior is required.
+     */
+    @Suppress("UNCHECKED_CAST")
+    protected open fun inflateBinding(inflater: LayoutInflater, container: ViewGroup?): VB {
+        var currentClass: Class<*>? = javaClass
+        while (currentClass != null && currentClass != Any::class.java) {
+            val genericSuperclass = currentClass.genericSuperclass
+            if (genericSuperclass is ParameterizedType) {
+                val bindingType = genericSuperclass.actualTypeArguments.firstOrNull { arg ->
+                    arg is Class<*> && ViewBinding::class.java.isAssignableFrom(arg)
+                }
+                if (bindingType != null) {
+                    val bindingClass = bindingType as Class<VB>
+                    val inflateMethod3 = runCatching {
+                        bindingClass.getMethod(
+                            "inflate",
+                            LayoutInflater::class.java,
+                            ViewGroup::class.java,
+                            Boolean::class.javaPrimitiveType
+                        )
+                    }.getOrNull()
+
+                    if (inflateMethod3 != null) {
+                        return inflateMethod3.invoke(null, inflater, container, false) as VB
+                    }
+
+                    val inflateMethod1 = bindingClass.getMethod("inflate", LayoutInflater::class.java)
+                    return inflateMethod1.invoke(null, inflater) as VB
+                }
+            }
+            currentClass = currentClass.superclass
+        }
+        error("Unable to automatically inflate ViewBinding for ${javaClass.simpleName}. Please override inflateBinding() manually.")
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -68,8 +104,8 @@ abstract class BaseDialog<VB : ViewBinding> : DialogFragment() {
         }
     }
 
-    protected open fun setupUI() {}
-    protected open fun setupListeners() {}
+    protected abstract fun setupUI()
+    protected abstract fun setupListeners()
 
     fun showLoading(message: String = "Loading...") {
         loadingDialog?.show(message)

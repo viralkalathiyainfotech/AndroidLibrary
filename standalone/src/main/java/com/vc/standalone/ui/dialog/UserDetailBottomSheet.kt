@@ -1,7 +1,5 @@
 package com.vc.standalone.ui.dialog
 
-import android.view.LayoutInflater
-import android.view.ViewGroup
 import com.vc.androidcore.base.BaseBottomSheetDialog
 import com.vc.androidcore.utils.loadImage
 import com.vc.standalone.data.model.StandaloneUser
@@ -13,13 +11,6 @@ import com.vc.standalone.databinding.BottomSheetUserInfoBinding
 class UserDetailBottomSheet(
     private val user: StandaloneUser
 ) : BaseBottomSheetDialog<BottomSheetUserInfoBinding>() {
-
-    override fun inflateBinding(
-        inflater: LayoutInflater,
-        container: ViewGroup?
-    ): BottomSheetUserInfoBinding {
-        return BottomSheetUserInfoBinding.inflate(inflater, container, false)
-    }
 
     override fun setupUI() {
         binding.tvSheetName.text = user.name
